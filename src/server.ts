@@ -430,6 +430,65 @@ class OpenFECServer {
             },
             required: ['data_type']
           }
+        },
+        {
+          name: 'search_donor_contributions',
+          description: 'Search for individual contributions by donor name, employer, or other criteria. Supports partial name matching (e.g., "Nicholas" will find "Nick", "Nicolas", etc.)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              contributor_name: {
+                type: 'string',
+                description: 'Donor name to search for (supports partial matching)'
+              },
+              contributor_employer: {
+                type: 'string',
+                description: 'Optional: Filter by employer name'
+              },
+              contributor_occupation: {
+                type: 'string',
+                description: 'Optional: Filter by occupation'
+              },
+              contributor_state: {
+                type: 'string',
+                description: 'Optional: Two-letter state code'
+              },
+              contributor_city: {
+                type: 'string',
+                description: 'Optional: City name'
+              },
+              two_year_transaction_period: {
+                type: 'number',
+                description: 'Optional: Two-year period (e.g., 2024 for 2023-2024 cycle)'
+              },
+              min_date: {
+                type: 'string',
+                description: 'Optional: Minimum contribution date (YYYY-MM-DD)'
+              },
+              max_date: {
+                type: 'string',
+                description: 'Optional: Maximum contribution date (YYYY-MM-DD)'
+              },
+              min_amount: {
+                type: 'number',
+                description: 'Optional: Minimum contribution amount'
+              },
+              max_amount: {
+                type: 'number',
+                description: 'Optional: Maximum contribution amount'
+              },
+              sort: {
+                type: 'string',
+                enum: ['asc', 'desc'],
+                description: 'Optional: Sort by contribution amount'
+              },
+              page: {
+                type: 'number',
+                description: 'Optional: Page number for pagination (default 1)'
+              }
+            },
+            required: ['contributor_name']
+          }
         }
       ],
     }));
@@ -468,6 +527,8 @@ class OpenFECServer {
             return await this.handleGetAuditCases(request.params.arguments);
           case 'get_bulk_downloads':
             return await this.handleGetBulkDownloads(request.params.arguments);
+          case 'search_donor_contributions':
+            return await this.handleSearchDonorContributions(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -835,6 +896,54 @@ class OpenFECServer {
       params: {
         data_type,
         election_year
+      }
+    });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response.data, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleSearchDonorContributions(args: any) {
+    const schema = z.object({
+      contributor_name: z.string(),
+      contributor_employer: z.string().optional(),
+      contributor_occupation: z.string().optional(),
+      contributor_state: z.string().optional(),
+      contributor_city: z.string().optional(),
+      two_year_transaction_period: z.number().optional(),
+      min_date: z.string().optional(),
+      max_date: z.string().optional(),
+      min_amount: z.number().optional(),
+      max_amount: z.number().optional(),
+      sort: z.enum(['asc', 'desc']).optional(),
+      page: z.number().optional()
+    });
+
+    const params = schema.parse(args);
+    this.rateLimiter.consumeToken();
+
+    const response = await this.axiosInstance.get('/schedules/schedule_a/', {
+      params: {
+        contributor_name: params.contributor_name,
+        contributor_employer: params.contributor_employer,
+        contributor_occupation: params.contributor_occupation,
+        contributor_state: params.contributor_state,
+        contributor_city: params.contributor_city,
+        two_year_transaction_period: params.two_year_transaction_period,
+        min_date: params.min_date,
+        max_date: params.max_date,
+        min_amount: params.min_amount,
+        max_amount: params.max_amount,
+        sort: params.sort === 'desc' ? '-contribution_receipt_amount' : 'contribution_receipt_amount',
+        sort_hide_null: true,
+        per_page: 100,
+        page: params.page || 1
       }
     });
 
