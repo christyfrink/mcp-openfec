@@ -7,7 +7,8 @@ A Model Context Protocol (MCP) server that provides access to Federal Election C
 - Search for candidates by name, state, or office
 - Get detailed candidate information and financial data
 - Access committee information
-- View individual contributions
+- **Search individual contributions by donor name** (with fuzzy matching)
+- View individual contributions to candidates
 - Track independent expenditures
 - Access FEC filings and audit cases
 - Download bulk data
@@ -21,7 +22,7 @@ A Model Context Protocol (MCP) server that provides access to Federal Election C
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/psalzman/mcp-openfec
+git clone https://github.com/christyfrink/mcp-openfec
 cd mcp-openfec
 ```
 
@@ -76,18 +77,26 @@ Important configuration notes:
 
 ## Available Tools
 
-1. `get_candidate`: Get detailed information about a candidate
-2. `get_candidate_financials`: Get financial data for a candidate
-3. `search_candidates`: Search for candidates by name or other criteria
-4. `get_committee`: Get detailed information about a committee
-5. `get_candidate_contributions`: Get individual contributions for a candidate
-6. `get_filings`: Retrieve official FEC filings
-7. `get_independent_expenditures`: Get independent expenditures
-8. `get_electioneering`: Get electioneering communications
-9. `get_party_coordinated_expenditures`: Get party coordinated expenditures
-10. `get_communication_costs`: Get corporate/union communication costs
-11. `get_audit_cases`: Get FEC audit cases and findings
-12. `get_bulk_downloads`: Get links to bulk data downloads
+### Candidate & Committee Tools
+- `search_candidates`: Search for candidates by name or other criteria
+- `get_candidate`: Get detailed information about a candidate
+- `get_candidate_financials`: Get financial data for a candidate
+- `get_committee`: Get detailed information about a committee
+
+### Contribution Tools
+- `search_donor_contributions`: **Search individual contributions by donor name, employer, occupation, state, city, date range, or amount range.** Supports partial name matching (e.g., "Nicholas" finds "Nick", "Nicolas"). Returns up to 100 results per page with pagination support.
+- `get_candidate_contributions`: Get individual contributions for a specific candidate
+
+### Expenditure & Filing Tools
+- `get_filings`: Retrieve official FEC filings
+- `get_independent_expenditures`: Get independent expenditures supporting or opposing candidates
+- `get_electioneering`: Get electioneering communications
+- `get_party_coordinated_expenditures`: Get party coordinated expenditures
+- `get_communication_costs`: Get corporate/union communication costs
+
+### Other Tools
+- `get_audit_cases`: Get FEC audit cases and findings
+- `get_bulk_downloads`: Get links to bulk data downloads
 
 ## Rate Limiting
 
