@@ -506,10 +506,6 @@ class OpenFECServer {
                 type: 'string',
                 description: 'Optional: Filter by recipient two-letter state code'
               },
-              recipient_zip: {
-                type: 'string',
-                description: 'Optional: Filter by recipient ZIP code'
-              },
               sort: {
                 type: 'string',
                 enum: ['asc', 'desc'],
@@ -521,6 +517,57 @@ class OpenFECServer {
               }
             },
             required: ['recipient_name']
+          }
+        },
+        {
+          name: 'get_committee_disbursements',
+          description: 'Get Schedule B disbursements made by a specific committee, identified by committee ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              committee_id: {
+                type: 'string',
+                description: 'FEC committee ID'
+              },
+              two_year_transaction_period: {
+                type: 'number',
+                description: 'Optional: Two-year period (e.g., 2024 for 2023-2024 cycle)'
+              },
+              recipient_name: {
+                type: 'string',
+                description: 'Optional: Filter by recipient/vendor name'
+              },
+              disbursement_description: {
+                type: 'string',
+                description: 'Optional: Filter by purpose/description of the disbursement'
+              },
+              min_date: {
+                type: 'string',
+                description: 'Optional: Minimum disbursement date (YYYY-MM-DD)'
+              },
+              max_date: {
+                type: 'string',
+                description: 'Optional: Maximum disbursement date (YYYY-MM-DD)'
+              },
+              min_amount: {
+                type: 'number',
+                description: 'Optional: Minimum disbursement amount'
+              },
+              max_amount: {
+                type: 'number',
+                description: 'Optional: Maximum disbursement amount'
+              },
+              sort: {
+                type: 'string',
+                enum: ['asc', 'desc'],
+                description: 'Optional: Sort by disbursement amount (default: desc)'
+              },
+              page: {
+                type: 'number',
+                description: 'Optional: Page number for pagination (default 1)'
+              }
+            },
+            required: ['committee_id']
           }
         },
         {
@@ -627,6 +674,8 @@ class OpenFECServer {
             return await this.handleGetBulkDownloads(request.params.arguments);
           case 'search_disbursements_by_vendor':
             return await this.handleSearchDisbursementsByVendor(request.params.arguments);
+          case 'get_committee_disbursements':
+            return await this.handleGetCommitteeDisbursements(request.params.arguments);
           case 'search_donor_contributions':
             return await this.handleSearchDonorContributions(request.params.arguments);
           default:
@@ -1056,7 +1105,6 @@ class OpenFECServer {
       disbursement_description: z.string().optional(),
       recipient_city: z.string().optional(),
       recipient_state: z.string().optional(),
-      recipient_zip: z.string().optional(),
       sort: z.enum(['asc', 'desc']).optional(),
       page: z.number().optional()
     });
@@ -1075,7 +1123,50 @@ class OpenFECServer {
         disbursement_description: params.disbursement_description,
         recipient_city: params.recipient_city,
         recipient_state: params.recipient_state,
-        recipient_zip: params.recipient_zip,
+        sort: params.sort === 'asc' ? 'disbursement_amount' : '-disbursement_amount',
+        sort_hide_null: true,
+        per_page: 100,
+        page: params.page || 1
+      }
+    });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response.data, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleGetCommitteeDisbursements(args: any) {
+    const schema = z.object({
+      committee_id: z.string(),
+      two_year_transaction_period: z.number().optional(),
+      recipient_name: z.string().optional(),
+      disbursement_description: z.string().optional(),
+      min_date: z.string().optional(),
+      max_date: z.string().optional(),
+      min_amount: z.number().optional(),
+      max_amount: z.number().optional(),
+      sort: z.enum(['asc', 'desc']).optional(),
+      page: z.number().optional()
+    });
+
+    const params = schema.parse(args);
+    this.rateLimiter.consumeToken();
+
+    const response = await this.axiosInstance.get('/schedules/schedule_b/', {
+      params: {
+        committee_id: params.committee_id,
+        two_year_transaction_period: params.two_year_transaction_period,
+        recipient_name: params.recipient_name,
+        disbursement_description: params.disbursement_description,
+        min_date: params.min_date,
+        max_date: params.max_date,
+        min_amount: params.min_amount,
+        max_amount: params.max_amount,
         sort: params.sort === 'asc' ? 'disbursement_amount' : '-disbursement_amount',
         sort_hide_null: true,
         per_page: 100,

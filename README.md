@@ -90,7 +90,8 @@ Important configuration notes:
 - `get_candidate_contributions`: Get individual contributions for a specific candidate
 
 ### Disbursement Tools
-- `search_disbursements_by_vendor`: **Search Schedule B disbursements by vendor/recipient name** to find which committees paid a given company or individual. Supports filtering by date range, amount range, election cycle, disbursement description/purpose, and recipient city/state/ZIP. Returns up to 100 results per page with pagination support.
+- `get_committee_disbursements`: **Get all Schedule B disbursements made by a specific committee** by committee ID. Supports filtering by recipient name, date range, amount range, election cycle, and disbursement description. Returns up to 100 results per page with pagination support.
+- `search_disbursements_by_vendor`: **Search Schedule B disbursements by vendor/recipient name** to find which committees paid a given company or individual. Supports filtering by date range, amount range, election cycle, disbursement description/purpose, and recipient city/state. Returns up to 100 results per page with pagination support.
 
 ### Expenditure & Filing Tools
 - `get_filings`: Retrieve official FEC filings
