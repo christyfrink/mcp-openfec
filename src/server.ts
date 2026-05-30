@@ -432,6 +432,53 @@ class OpenFECServer {
           }
         },
         {
+          name: 'search_disbursements_by_vendor',
+          description: 'Search Schedule B disbursements by vendor/recipient name to see which committees paid a company or individual',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              recipient_name: {
+                type: 'string',
+                description: 'Vendor or recipient name to search for (partial matching supported)'
+              },
+              two_year_transaction_period: {
+                type: 'number',
+                description: 'Optional: Two-year period (e.g., 2024 for 2023-2024 cycle)'
+              },
+              min_date: {
+                type: 'string',
+                description: 'Optional: Minimum disbursement date (YYYY-MM-DD)'
+              },
+              max_date: {
+                type: 'string',
+                description: 'Optional: Maximum disbursement date (YYYY-MM-DD)'
+              },
+              min_amount: {
+                type: 'number',
+                description: 'Optional: Minimum disbursement amount'
+              },
+              max_amount: {
+                type: 'number',
+                description: 'Optional: Maximum disbursement amount'
+              },
+              disbursement_description: {
+                type: 'string',
+                description: 'Optional: Filter by purpose/description of the disbursement'
+              },
+              sort: {
+                type: 'string',
+                enum: ['asc', 'desc'],
+                description: 'Optional: Sort by disbursement amount'
+              },
+              page: {
+                type: 'number',
+                description: 'Optional: Page number for pagination (default 1)'
+              }
+            },
+            required: ['recipient_name']
+          }
+        },
+        {
           name: 'search_donor_contributions',
           description: 'Search for individual contributions by donor name, employer, or other criteria. Supports partial name matching (e.g., "Nicholas" will find "Nick", "Nicolas", etc.)',
           inputSchema: {
@@ -527,6 +574,8 @@ class OpenFECServer {
             return await this.handleGetAuditCases(request.params.arguments);
           case 'get_bulk_downloads':
             return await this.handleGetBulkDownloads(request.params.arguments);
+          case 'search_disbursements_by_vendor':
+            return await this.handleSearchDisbursementsByVendor(request.params.arguments);
           case 'search_donor_contributions':
             return await this.handleSearchDonorContributions(request.params.arguments);
           default:
@@ -896,6 +945,48 @@ class OpenFECServer {
       params: {
         data_type,
         election_year
+      }
+    });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response.data, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleSearchDisbursementsByVendor(args: any) {
+    const schema = z.object({
+      recipient_name: z.string(),
+      two_year_transaction_period: z.number().optional(),
+      min_date: z.string().optional(),
+      max_date: z.string().optional(),
+      min_amount: z.number().optional(),
+      max_amount: z.number().optional(),
+      disbursement_description: z.string().optional(),
+      sort: z.enum(['asc', 'desc']).optional(),
+      page: z.number().optional()
+    });
+
+    const params = schema.parse(args);
+    this.rateLimiter.consumeToken();
+
+    const response = await this.axiosInstance.get('/schedules/schedule_b/', {
+      params: {
+        recipient_name: params.recipient_name,
+        two_year_transaction_period: params.two_year_transaction_period,
+        min_date: params.min_date,
+        max_date: params.max_date,
+        min_amount: params.min_amount,
+        max_amount: params.max_amount,
+        disbursement_description: params.disbursement_description,
+        sort: params.sort === 'asc' ? 'disbursement_amount' : '-disbursement_amount',
+        sort_hide_null: true,
+        per_page: 100,
+        page: params.page || 1
       }
     });
 
