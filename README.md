@@ -8,6 +8,7 @@ A Model Context Protocol (MCP) server that provides access to Federal Election C
 - Get detailed candidate information and financial data
 - Access committee information
 - **Search individual contributions by donor name** (with fuzzy matching)
+- **Search disbursements by vendor/recipient name** to see which committees paid a company
 - View individual contributions to candidates
 - Track independent expenditures
 - Access FEC filings and audit cases
@@ -86,6 +87,9 @@ Important configuration notes:
 ### Contribution Tools
 - `search_donor_contributions`: **Search individual contributions by donor name, employer, occupation, state, city, date range, or amount range.** Supports partial name matching (e.g., "Nicholas" finds "Nick", "Nicolas"). Returns up to 100 results per page with pagination support.
 - `get_candidate_contributions`: Get individual contributions for a specific candidate
+
+### Disbursement Tools
+- `search_disbursements_by_vendor`: **Search Schedule B disbursements by vendor/recipient name** to find which committees paid a given company or individual. Supports filtering by date range, amount range, election cycle, and disbursement description/purpose. Returns up to 100 results per page with pagination support.
 
 ### Expenditure & Filing Tools
 - `get_filings`: Retrieve official FEC filings
