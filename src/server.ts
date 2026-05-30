@@ -168,6 +168,39 @@ class OpenFECServer {
           },
         },
         {
+          name: 'search_committees',
+          description: 'Search for committees by name, state, type, or party',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Committee name to search for (partial matching supported)'
+              },
+              state: {
+                type: 'string',
+                description: 'Optional: Two-letter state code for the committee\'s registered state'
+              },
+              committee_type: {
+                type: 'string',
+                description: 'Optional: Committee type code (e.g., P=Super PAC, S=Senate, H=House, X=Party, Y=Party-qualified)'
+              },
+              party: {
+                type: 'string',
+                description: 'Optional: Party affiliation code (e.g., DEM, REP)'
+              },
+              cycle: {
+                type: 'number',
+                description: 'Optional: Election cycle (e.g., 2024)'
+              },
+              page: {
+                type: 'number',
+                description: 'Optional: Page number for pagination (default 1)'
+              }
+            }
+          }
+        },
+        {
           name: 'get_candidate_contributions',
           description: 'Get individual contributions for a candidate',
           inputSchema: {
@@ -465,6 +498,18 @@ class OpenFECServer {
                 type: 'string',
                 description: 'Optional: Filter by purpose/description of the disbursement'
               },
+              recipient_city: {
+                type: 'string',
+                description: 'Optional: Filter by recipient city'
+              },
+              recipient_state: {
+                type: 'string',
+                description: 'Optional: Filter by recipient two-letter state code'
+              },
+              recipient_zip: {
+                type: 'string',
+                description: 'Optional: Filter by recipient ZIP code'
+              },
               sort: {
                 type: 'string',
                 enum: ['asc', 'desc'],
@@ -503,6 +548,10 @@ class OpenFECServer {
               contributor_city: {
                 type: 'string',
                 description: 'Optional: City name'
+              },
+              contributor_zip: {
+                type: 'string',
+                description: 'Optional: ZIP code'
               },
               two_year_transaction_period: {
                 type: 'number',
@@ -556,6 +605,8 @@ class OpenFECServer {
             return await this.handleSearchCandidates(request.params.arguments);
           case 'get_committee':
             return await this.handleGetCommittee(request.params.arguments);
+          case 'search_committees':
+            return await this.handleSearchCommittees(request.params.arguments);
           case 'get_candidate_financials':
             return await this.handleGetCandidateFinancials(request.params.arguments);
           case 'get_candidate_contributions':
@@ -658,6 +709,42 @@ class OpenFECServer {
     this.rateLimiter.consumeToken();
 
     const response = await this.axiosInstance.get(`/committee/${committee_id}`);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response.data, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleSearchCommittees(args: any) {
+    const schema = z.object({
+      name: z.string().optional(),
+      state: z.string().optional(),
+      committee_type: z.string().optional(),
+      party: z.string().optional(),
+      cycle: z.number().optional(),
+      page: z.number().optional()
+    });
+
+    const params = schema.parse(args);
+    this.rateLimiter.consumeToken();
+
+    const response = await this.axiosInstance.get('/committees/', {
+      params: {
+        q: params.name,
+        state: params.state,
+        committee_type: params.committee_type,
+        party: params.party,
+        cycle: params.cycle,
+        sort_hide_null: true,
+        per_page: 50,
+        page: params.page || 1
+      }
+    });
 
     return {
       content: [
@@ -967,6 +1054,9 @@ class OpenFECServer {
       min_amount: z.number().optional(),
       max_amount: z.number().optional(),
       disbursement_description: z.string().optional(),
+      recipient_city: z.string().optional(),
+      recipient_state: z.string().optional(),
+      recipient_zip: z.string().optional(),
       sort: z.enum(['asc', 'desc']).optional(),
       page: z.number().optional()
     });
@@ -983,6 +1073,9 @@ class OpenFECServer {
         min_amount: params.min_amount,
         max_amount: params.max_amount,
         disbursement_description: params.disbursement_description,
+        recipient_city: params.recipient_city,
+        recipient_state: params.recipient_state,
+        recipient_zip: params.recipient_zip,
         sort: params.sort === 'asc' ? 'disbursement_amount' : '-disbursement_amount',
         sort_hide_null: true,
         per_page: 100,
@@ -1007,6 +1100,7 @@ class OpenFECServer {
       contributor_occupation: z.string().optional(),
       contributor_state: z.string().optional(),
       contributor_city: z.string().optional(),
+      contributor_zip: z.string().optional(),
       two_year_transaction_period: z.number().optional(),
       min_date: z.string().optional(),
       max_date: z.string().optional(),
@@ -1026,6 +1120,7 @@ class OpenFECServer {
         contributor_occupation: params.contributor_occupation,
         contributor_state: params.contributor_state,
         contributor_city: params.contributor_city,
+        contributor_zip: params.contributor_zip,
         two_year_transaction_period: params.two_year_transaction_period,
         min_date: params.min_date,
         max_date: params.max_date,
